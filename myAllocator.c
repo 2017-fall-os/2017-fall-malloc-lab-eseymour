@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h> /* For memcpy */
 #include <unistd.h>
 
 #include "myAllocator.h"
@@ -349,19 +350,21 @@ void freeRegion(void *r) {
 */
 void *resizeRegion(void *r, size_t newSize) {
   int oldSize;
+
   if (r != (void *)0) /* old region existed */
     oldSize = computeUsableSpace(regionToPrefix(r));
   else
     oldSize = 0; /* non-existant regions have size 0 */
+
   if (oldSize >= newSize) { /* old region is big enough */
     return r;
   } else { /* allocate new region & copy old data */
-    char *o = (char *)r; /* treat both regions as char* */
-    char *n = (char *)firstFitAllocRegion(newSize);
-    int i;
-    for (i = 0; i < oldSize; i++) /* copy byte-by-byte, should use memcpy */
-      n[i] = o[i];
+    void *o = r; /* treat both regions as char* */
+    void *n = firstFitAllocRegion(newSize);
+
+    memcpy(n, o, oldSize); /* using memcpy now */
     freeRegion(o); /* free old region */
+
     return (void *)n;
   }
 }
