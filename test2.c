@@ -19,7 +19,7 @@ void getutime(struct timeval *t) {
 
 int main() {
   void *p1, *p2, *p3;
-  allocMethod = FIRST_FIT;
+  allocMethod = NEXT_FIT;
   arenaCheck();
   p1 = malloc(254);
   arenaCheck();
