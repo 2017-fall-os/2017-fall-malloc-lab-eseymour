@@ -188,6 +188,38 @@ BlockPrefix_t *findFirstFit(size_t s) { /* find first block with usable space > 
   return growArena(s);
 }
 
+BlockPrefix_t *findNextFit(size_t s) { /* find next block with usable space > s */
+  static BlockPrefix_t *lastBlock = 0;
+  BlockPrefix_t *p = lastBlock;
+
+  if (lastBlock == 0) { /* lastBlock uninitialized? */
+    lastBlock = arenaBegin;
+    p = arenaBegin;
+  }
+
+  while (p) { /* search after last block */
+    if (!p->allocated && computeUsableSpace(p) >= s) {
+      lastBlock = p;
+      return p;
+    }
+    p = getNextPrefix(p);
+  }
+
+  /* loop araound */
+  p = arenaBegin;
+  while (p && p < lastBlock) { /* search until we're back where we started */
+    if (!p->allocated && computeUsableSpace(p) >= s) {
+      lastBlock = p;
+      return p;
+    }
+    p = getNextPrefix(p);
+  }
+
+  lastBlock = growArena(s);
+  return lastBlock;
+}
+
+
 /* conversion between blocks & regions (offset of prefixSize */
 BlockPrefix_t *regionToPrefix(void *r) {
   if (r)
@@ -204,7 +236,7 @@ void *prefixToRegion(BlockPrefix_t *p) {
     return 0;
 }
 
-/* these really are equivalent to malloc & free */
+/* these really are equivalent to malloc, using first fit */
 void *firstFitAllocRegion(size_t s) {
   size_t asize = align8(s);
   BlockPrefix_t *p;
@@ -224,9 +256,34 @@ void *firstFitAllocRegion(size_t s) {
   } else { /* failed */
     return (void *)0;
   }
-
 }
 
+/* these really are equivalent to malloc, using next fit */
+void *nextFitAllocRegion(size_t s) {
+  size_t asize = align8(s);
+  BlockPrefix_t *p;
+
+  if (arenaBegin == 0) /* arena uninitialized? */
+    initializeArena();
+
+  p = findNextFit(s); /* find a block */
+
+  if (p) { /* found a block */
+    size_t availSize = computeUsableSpace(p);
+    if (availSize >= (asize + prefixSize + suffixSize + 8)) { /* split block? */
+      void *freeSliverStart = (void *)p + prefixSize + suffixSize + asize;
+      void *freeSliverEnd = computeNextPrefixAddr(p);
+      makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+      makeFreeBlock(p, freeSliverStart - (void *)p); /* piece being allocated */
+    }
+    p->allocated = 1; /* mark as allocated */
+    return prefixToRegion(p); /* convert to *region */
+  } else { /* failed */
+    return (void *)0;
+  }
+}
+
+/* this really is equivalent to free */
 void freeRegion(void *r) {
   if (r != 0) {
     BlockPrefix_t *p = regionToPrefix(r); /* convert to block */
