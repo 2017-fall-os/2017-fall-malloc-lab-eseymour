@@ -1,6 +1,12 @@
 #ifndef myAllocator_H
 #define myAllocator_H
 
+typedef enum {
+  FIRST_FIT, NEXT_FIT, BEST_FIT
+} AllocMethod_t;
+
+extern AllocMethod_t allocMethod;
+
 /* block prefix & suffix */
 typedef struct BlockPrefix_s {
   struct BlockSuffix_s *suffix;

@@ -6,9 +6,22 @@
 #define align4(x) ((x+3) & ~3)
 #define align8(x) ((x+7) & ~7)
 
+AllocMethod_t allocMethod = NEXT_FIT;
+
 /* first, the standard malloc functions */
 void *malloc(size_t NBYTES) {
-  return firstFitAllocRegion(NBYTES);
+  void *APTR;
+  switch (allocMethod) {
+    case FIRST_FIT:
+      APTR = firstFitAllocRegion(NBYTES);
+      break;
+    case NEXT_FIT:
+      APTR = nextFitAllocRegion(NBYTES);
+      break;
+    case BEST_FIT:
+      APTR = 0; /* Not implemented yet */
+  }
+  return APTR;
 }
 
 void *realloc(void *APTR, size_t NBYTES) {
