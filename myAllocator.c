@@ -126,8 +126,11 @@ void coalesce(BlockPrefix_t *p) { /* coalesce p with prev & next */
   }
 }
 
+#ifdef __CYGWIN__
 int growingDisabled = 1; /* true: don't grow arena! (needed for cygwin) */
-
+#else
+int growingDisabled = 0; /* false: grow arena */
+#endif
 BlockPrefix_t *growArena(size_t s) { /* this won't work under cygwin since runtime uses brk()!! */
   void *n;
   BlockPrefix_t *p;
