@@ -19,7 +19,7 @@ void *malloc(size_t NBYTES) {
       APTR = nextFitAllocRegion(NBYTES);
       break;
     case BEST_FIT:
-      APTR = 0; /* Not implemented yet */
+      APTR = bestFitAllocRegion(NBYTES);
   }
   return APTR;
 }

@@ -222,6 +222,24 @@ BlockPrefix_t *findNextFit(size_t s) { /* find next block with usable space > s 
   return lastBlock;
 }
 
+BlockPrefix_t *findBestFit(size_t s) { /* find best block with usable space > s */
+  BlockPrefix_t *p = arenaBegin;
+  BlockPrefix_t *bestBlock = 0;
+
+  while (p) {
+    if (!p->allocated && computeUsableSpace(p) >= s) /* Possible block found */
+      if (bestBlock == 0 || computeUsableSpace(bestBlock) > computeUsableSpace(p))
+        /* Found better block */
+        bestBlock = p;
+
+    p = getNextPrefix(p);
+  }
+
+  if (bestBlock != 0)
+    return bestBlock;
+  else
+    return growArena(s);
+}
 
 /* conversion between blocks & regions (offset of prefixSize */
 BlockPrefix_t *regionToPrefix(void *r) {
@@ -270,6 +288,31 @@ void *nextFitAllocRegion(size_t s) {
     initializeArena();
 
   p = findNextFit(s); /* find a block */
+
+  if (p) { /* found a block */
+    size_t availSize = computeUsableSpace(p);
+    if (availSize >= (asize + prefixSize + suffixSize + 8)) { /* split block? */
+      void *freeSliverStart = (void *)p + prefixSize + suffixSize + asize;
+      void *freeSliverEnd = computeNextPrefixAddr(p);
+      makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+      makeFreeBlock(p, freeSliverStart - (void *)p); /* piece being allocated */
+    }
+    p->allocated = 1; /* mark as allocated */
+    return prefixToRegion(p); /* convert to *region */
+  } else { /* failed */
+    return (void *)0;
+  }
+}
+
+/* these really are equivalent to malloc, using best fit */
+void *bestFitAllocRegion(size_t s) {
+  size_t asize = align8(s);
+  BlockPrefix_t *p;
+
+  if (arenaBegin == 0) /* arena uninitialized? */
+    initializeArena();
+
+  p = findBestFit(s); /* find a block */
 
   if (p) { /* found a block */
     size_t availSize = computeUsableSpace(p);
