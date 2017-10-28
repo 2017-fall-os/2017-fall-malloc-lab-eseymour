@@ -25,7 +25,7 @@ int main() {
   p2 = firstFitAllocRegion(25400);
   arenaCheck();
   p3 = firstFitAllocRegion(254);
-  printf("%8zx %8zx %8zx\n", p1, p2, p3);
+  printf("%p %p %p\n", p1, p2, p3);
   arenaCheck();
   freeRegion(p2);
   arenaCheck();
