@@ -34,6 +34,16 @@ int main() {
   arenaCheck();
   free(p1);
   arenaCheck();
+
+  /* Test resize */
+  p1 = malloc(200);
+  arenaCheck();
+  p1 = realloc(p1, 400);
+  arenaCheck();
+  p1 = realloc(p1, 600);
+  arenaCheck();
+  free(p1);
+  arenaCheck();
   { /* measure time for 10000 mallocs */
     struct timeval t1, t2;
     int i;

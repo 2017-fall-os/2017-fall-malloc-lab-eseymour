@@ -345,7 +345,7 @@ void freeRegion(void *r) {
    1. checking if the present region has sufficient available space to
    satisfy the request (if so, do nothing)
    2. allocating a new region of sufficient size & copying the data
-   TODO: if the successor 's' to r's block is free, and there is sufficient space
+   if the successor 's' to r's block is free, and there is sufficient space
    in r + s, then just adjust sizes of r & s.
 */
 void *resizeRegion(void *r, size_t newSize) {
@@ -358,7 +358,31 @@ void *resizeRegion(void *r, size_t newSize) {
 
   if (oldSize >= newSize) { /* old region is big enough */
     return r;
-  } else { /* allocate new region & copy old data */
+  } else { /* check if old plus next is big enough */
+    void *s = prefixToRegion(computeNextPrefixAddr(regionToPrefix(r)));
+    if (s) { /* next exists */
+      int succSize = computeUsableSpace(regionToPrefix(s));
+      int availSize = oldSize + succSize + prefixSize + suffixSize;
+      if (availSize >= newSize) { /* sufficient space */
+
+        /* Merge block */
+        BlockPrefix_t *prefix = regionToPrefix(r);
+        BlockSuffix_t *suffix = regionToPrefix(s)->suffix;
+        prefix->suffix = suffix;
+        suffix->prefix = prefix;
+
+        int asize = align8(newSize);
+        if (availSize >= (asize + prefixSize + suffixSize + 8)) { /* split block? */
+          void *freeSliverStart = (void *)prefix + prefixSize + suffixSize + asize;
+          void *freeSliverEnd = computeNextPrefixAddr(prefix);
+          makeFreeBlock(freeSliverStart, freeSliverEnd - freeSliverStart);
+          makeFreeBlock(prefix, freeSliverStart - (void *)prefix); /* piece being allocated */
+        }
+
+        return r;
+      }
+    }
+    /* allocate new region & copy old data */
     void *o = r; /* treat both regions as char* */
     void *n = firstFitAllocRegion(newSize);
 

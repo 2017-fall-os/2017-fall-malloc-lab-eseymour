@@ -33,6 +33,16 @@ int main() {
   arenaCheck();
   freeRegion(p1);
   arenaCheck();
+
+  /* Test resize */
+  p1 = nextFitAllocRegion(200);
+  arenaCheck();
+  p1 = resizeRegion(p1, 400);
+  arenaCheck();
+  p1 = resizeRegion(p1, 600);
+  arenaCheck();
+  freeRegion(p1);
+  arenaCheck();
   { /* measure time for 10000 mallocs */
     struct timeval t1, t2;
     int i;
